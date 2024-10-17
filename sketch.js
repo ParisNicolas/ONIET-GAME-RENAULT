@@ -7,34 +7,74 @@ let score = 0;
 let gameState = "menu"; // Estados del juego: 'menu', 'playing', 'help'
 let isJumping = false;
 
+let bottle;
+let bottleExist = false;
+let fire;
+
+let fondoPos1 = 0;
+let fondoPos2 = 0;
+let fondo;
+let ovnisGroup;
+let jumpSound;
+
+function preload() {
+	// Carga la imagen de fondo
+	fondo = loadImage('sprites/fondos/FONDO CHETO FINAL.png'); // Cambia a la ruta de tu imagen
+	jumpSound = loadSound("sprites/sonidos/Musicaoniet.m4a");
+}
+
 function setup() {
-	createCanvas(800, 400);
+	createCanvas(windowWidth, (windowHeight / 3) * 2);
 }
 
 function draw() {
+	jumpSound.play();
 	background(200);
 
-	if (gameState === "menu") {
-	drawMenu();
-	} else if (gameState === "playing") {
-	drawGame();
-	} else if (gameState === "help") {
-	drawHelp();
-	} else if (gameState === "gameOver") {
-	drawGameOver();
+	if(gameState !== "end" && gameState !== "menu"){
+		image(fondo, fondoPos1, 0, (height * fondo.width) / fondo.height, height);
+		image(fondo, fondoPos2, 0, (height * fondo.width) / fondo.height, height);
 	}
+
+	if(gameState === "menu"){
+		
+	}
+	
+
+	if (gameState === "menu") {
+		drawMenu();
+	} else if (gameState === "playing") {
+		drawGame();
+	} else if (gameState === "help") {
+		drawHelp();
+	} else if (gameState === "gameOver") {
+		drawGameOver();
+	}else if (gameState === "end") {
+		drawGameOver();
+	}
+
+}
+
+function drawEnd(){
+	
 }
 
 function resetGame() {
+	fondoPos1 = 0
+	fondoPos2 = fondo.width * 2
 	// Reiniciar variables para un nuevo juego
-	dino = new Sprite(100, height - 70, 50, 50);
+	dino = new Sprite(100, height - 70, 10, 40);
 	dino.rotationLock = true; // Bloquear rotación
+	dino.image = "sprites/pandillero/PANDILLERO0.png"
+	dino.scale = 3
 
 	// Crear el suelo
 	ground = new Sprite(width / 2, height - 10, width, 20, 'static');
+	ground.visible = true
 
 	// Crear grupo de cactus
 	cactusGroup = new Group();
+	ovnisGroup = new Group();
 	score = 0;
 	isJumping = false; // Reiniciar el estado de salto
 	gameState = "playing"; // Iniciar el juego
@@ -65,13 +105,13 @@ function drawMenu() {
 
 	// Detectar clicks en los botones
 	if (mouseIsPressed) {
-	if (mouseX > width / 2 - 100 && mouseX < width / 2 + 100) {
-		if (mouseY > height / 2 - 25 && mouseY < height / 2 + 25) {
-		resetGame(); // Comenzar a jugar
-		} else if (mouseY > height / 2 + 45 && mouseY < height / 2 + 95) {
-		gameState = "help"; // Mostrar ayuda
+		if (mouseX > width / 2 - 100 && mouseX < width / 2 + 100) {
+			if (mouseY > height / 2 - 25 && mouseY < height / 2 + 25) {
+				resetGame(); // Comenzar a jugar
+			} else if (mouseY > height / 2 + 45 && mouseY < height / 2 + 95) {
+				gameState = "help"; // Mostrar ayuda
+			}
 		}
-	}
 	}
 }
 
@@ -92,11 +132,28 @@ function drawHelp() {
 
 	// Detectar click en el botón de "Volver"
 	if (mouseIsPressed && mouseX > width / 2 - 100 && mouseX < width / 2 + 100 && mouseY > height - 100 && mouseY < height - 50) {
-	gameState = "menu"; // Volver al menú
+		gameState = "menu"; // Volver al menú
 	}
 }
 
 function drawGame() {
+
+	if(score >= 1000){
+		gameState = "end"
+	}
+
+	fondoPos1 -= 6; // Cambia el valor para ajustar la velocidad
+	fondoPos2 -= 6;
+
+	// Vuelve a colocar el fondo si se ha salido de la pantalla
+	if (fondoPos1 <= 0 - fondo.width * 2) {
+		fondoPos1 = fondoPos2 + fondo.width * 2; // Coloca el fondo encima del segundo
+	}
+	if (fondoPos2 <= 0 - fondo.width * 2) {
+		fondoPos2 = fondoPos1 + fondo.width * 2; // Coloca el fondo encima del primero
+	}
+
+
 	// Mostrar el puntaje
 	textSize(24);
 	text("Puntaje: " + score, 10, 30);
@@ -106,46 +163,71 @@ function drawGame() {
 
 	// Impedir que el dinosaurio caiga por debajo del suelo
 	if (dino.collides(ground)) {
-	dino.vel.y = 0; // Detener la caída
-	isJumping = false; // Resetear estado de salto cuando está en el suelo
+		dino.vel.y = 0; // Detener la caída
+		isJumping = false; // Resetear estado de salto cuando está en el suelo
 	}
 
 	// Hacer que el dinosaurio salte con W, la flecha arriba o la barra espaciadora
 	if ((kb.presses('space') || kb.presses('w') || kb.presses('up')) && !isJumping) {
-	dino.vel.y = jumpPower; // Salto
-	isJumping = true;
+		dino.vel.y = jumpPower; // Salto
+		isJumping = true;
 	}
 
 	// Movimiento horizontal con A y D o flechas izquierda y derecha
 	if (kb.pressing('a') || kb.pressing('left')) {
-	dino.vel.x = -5;
+		dino.vel.x = -5;
 	} else if (kb.pressing('d') || kb.pressing('right')) {
-	dino.vel.x = 5;
+		dino.vel.x = 5;
 	} else {
-	dino.vel.x = 0; // Detener si no se presiona ninguna tecla
+		dino.vel.x = 0; // Detener si no se presiona ninguna tecla
 	}
 
 	// Generar cactus cada 60 cuadros
-	if (frameCount % 60 === 0) {
+	/*if (frameCount % 60 === 0) {
 	let cactus = new Sprite(width, height - 70, 30, 60);
 	cactus.vel.x = -6; // Movimiento hacia la izquierda
 	cactusGroup.add(cactus);
+	}*/
+	if (frameCount % 200 === 0) {
+		generateOvni()
+	}
+	if (frameCount % 120 === 0) {
+		eventFire()
 	}
 
 	// Remover cactus fuera de la pantalla
 	cactusGroup.forEach(cactus => {
-	if (cactus.x < -50) {
-		cactus.remove();
-	}
+		if (cactus.x < -50) {
+			cactus.remove();
+		}
 	});
 
 	// Verificar colisiones con los cactus
 	if (dino.collides(cactusGroup)) {
-	gameOver();
+		gameOver();
 	}
+
 
 	// Aumentar el puntaje
 	score += 1;
+
+	if (bottleExist && bottle.y > 550) {
+		fire = new Sprite();
+		fire.scale *= 3;
+		fire.w = 80;
+		fire.h = 20;
+		fire.x = bottle.x;
+		fire.y = height - 66;
+		fire.life=80
+		fire.vel.x=-4
+		fire.rotationLock =true
+		bottle.remove();
+		tash.frameDelay = 60;
+		fire.addAnimation(
+			'sprites/fuego/sprite_1.png', 4
+		);
+
+	}
 }
 
 function drawGameOver() {
@@ -154,9 +236,9 @@ function drawGameOver() {
 	textAlign(CENTER, CENTER);
 	text("¡Game Over!", width / 2, height / 2);
 	textSize(24);
-	fill(0);
+	fill(255);
 	text("Puntaje final: " + score, width / 2, height / 2 + 40);
-	
+
 	// Botón de reinicio
 	fill(100, 200, 100);
 	rect(width / 2, height - 75, 200, 50);
@@ -165,7 +247,15 @@ function drawGameOver() {
 
 	// Detectar clic en el botón de reinicio
 	if (mouseIsPressed && mouseX > width / 2 - 100 && mouseX < width / 2 + 100 && mouseY > height - 100 && mouseY < height - 50) {
-	resetGame(); // Reiniciar el juego
+		resetGame(); // Reiniciar el juego
+	}
+
+	for (let i = bottles.length - 1; i >= 0; i--) {
+		let bottle = bottles[i];
+		if (bottle.collides(ground)) {
+			bottle.remove(); // Eliminar botella que colisiona con el suelo
+			bottles.splice(i, 1); // Eliminar botella del arreglo
+		}
 	}
 }
 
@@ -176,104 +266,66 @@ function gameOver() {
 
 
 
-function nada(){
-
-    obj1 = new Group();
-	obj1.w = 30;
-	obj1.h = 60;
-	obj1.tile = '=';
-
-	obj2 = new Group();
-	obj2.w = 60;
-	obj2.h = 60;
-	obj2.tile = '#';
-
-	obj3 = new Group();
-	obj3.w = 40;
-	obj3.h = 5;
-	obj3.tile = 'z';
-
-	obj4 = new Group();
-	obj4.w = 60;
-	obj4.h = 15;
-	obj4.tile = '_';
-
-	obj5 = new Group();
-	obj5.w = 150;
-	obj5.h = 80;
-	obj5.tile = 'A';
-
-	obj6 = new Group();
-	obj6.w = 50;
-	obj6.h = 30;
-	obj6.tile = '~';
-
-	obj8 = new Group();
-	obj8.w = 30;
-	obj8.h = 30;
-	obj8.tile = '°';
-
-	obj7 = new Group();
-	obj7.w = 30;
-	obj7.h = 30;
-	obj7.tile = '*';
-
-	obj9 = new Group();
-	obj9.w = 30;
-	obj9.h = 30;
-	obj9.tile = '@';
 
 
-	tash = new Tiles(
-		[
-			'='
-		],
-		100, //pocicion x
-		40, //pocicion y
+function tash() {
+	let tash;
+
+	tash = new Sprite();
+	tash.w = 30;
+	tash.h = 60;
+	tash.x = width;
+	tash.y = height - 70;
+	tash.velocity.x = -4;
+	tash.rotationLock = true
+
+	tash.addAnimation(
+		'sprites/basura/Basura0.png', 5
 	);
 
 
-	car = new Tiles(
-		[
-			'A'
-		],
-		100, //pocicion x
-		40, //pocicion y
+	tash.frameDelay = 10;
+}
+
+function generateOvni() {
+	let ovni;
+
+	ovni = new Sprite();
+	ovni.scale *= 1.6;
+	ovni.w = 30;
+	ovni.h = 60;
+	ovni.x = width;
+	ovni.y = height - 400;
+	ovni.velocity.x = -7;
+	ovni.rotationLock = true
+
+	ovni.addAnimation(
+		'sprites/ovni/ovni0.png', 3
 	);
 
+	ovni.frameDelay = 10;
+	ovni.moveTo(dino.x, dino.y, 8);
+	ovni.collides(ground, () => {
+		ovni.vel.x = -4
+		ovni.vel.y = 0
+	});
 
-	jump = new Tiles(
-		[
-			'..#.',
-			'z.#.',
-		],
-		100, //pocicion x
-		40, //pocicion y
+	ovni.life = 260;
+}
+
+function eventFire() {
+	bottleExist = true
+	bottle = new Sprite();
+	bottle.scale *= 1.5;
+	bottle.r = 20;
+	bottle.rotationSpeed = 2;
+	bottle.x = width / 2;
+	bottle.y = height - 400;
+	bottle.direction = random(160,100);
+	bottle.speed = 10;
+
+	bottle.addAnimation(
+		'sprites/molotov/sprite_0.png', 1
 	);
 
-
-		fire = new Tiles(
-		[
-			'A'
-		],
-		100, //pocicion x
-		40, //pocicion y
-	);
-
-
-		car = new Tiles(
-		[
-			'A'
-		],
-		100, //pocicion x
-		40, //pocicion y
-	);
-
-		car = new Tiles(
-		[
-			'A'
-		],
-		100, //pocicion x
-		40, //pocicion y
-	);
 }
